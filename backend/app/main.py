@@ -12,10 +12,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Configure CORS
+# Configure CORS - Allow all origins for development
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=["*"],  # Allow all origins in development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -41,3 +41,37 @@ async def health_check():
         "version": "0.1.0",
         "database": "connected",  # TODO: Add actual DB health check
     }
+
+
+@app.get("/api/applications")
+async def get_applications_mock():
+    """Mock endpoint for testing - returns sample applications"""
+    return [
+        {
+            "application_id": "550e8400-e29b-41d4-a716-446655440000",
+            "company_id": "660e8400-e29b-41d4-a716-446655440000",
+            "company_name": "Tech Corp India",
+            "loan_amount_requested": 5000000,
+            "loan_purpose": "Working Capital",
+            "status": "pending",
+            "submitted_date": "2026-03-14T10:00:00Z"
+        },
+        {
+            "application_id": "550e8400-e29b-41d4-a716-446655440001",
+            "company_id": "660e8400-e29b-41d4-a716-446655440001",
+            "company_name": "Manufacturing Ltd",
+            "loan_amount_requested": 10000000,
+            "loan_purpose": "Equipment Purchase",
+            "status": "processing",
+            "submitted_date": "2026-03-13T15:30:00Z"
+        },
+        {
+            "application_id": "550e8400-e29b-41d4-a716-446655440002",
+            "company_id": "660e8400-e29b-41d4-a716-446655440002",
+            "company_name": "Retail Enterprises",
+            "loan_amount_requested": 7500000,
+            "loan_purpose": "Business Expansion",
+            "status": "completed",
+            "submitted_date": "2026-03-10T09:15:00Z"
+        }
+    ]
