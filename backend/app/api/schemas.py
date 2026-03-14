@@ -19,6 +19,7 @@ class ApplicationResponse(BaseModel):
     """Response schema for application details."""
     application_id: UUID
     company_id: UUID
+    company_name: Optional[str] = None
     loan_amount_requested: float
     loan_purpose: str
     status: str

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Backend API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Intelli-Credit Backend API Test</h1>
+    <p>Testing connection to backend at: <strong>http://localhost:8000</strong></p>
+
+    <div class="test-section">
+        <h2>Test Controls</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <button onclick="testApplicationsList()">Test Applications List</button>
+        <button onclick="testApplicationDetail()">Test Application Detail</button>
+        <button onclick="testCreditAssessment()">Test Credit Assessment</button>
+        <button onclick="testRecommendation()">Test Recommendation</button>
+        <button onclick="testResearch()">Test Research</button>
+        <button onclick="testCAM()">Test CAM</button>
+        <button onclick="testAll()">Run All Tests</button>
+    </div>
+
+    <div id="results"></div>
+
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        const TEST_APP_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+        function addResult(title, success, data, error = null) {
+            const resultsDiv = document.getElementById('results');
+            const section = document.createElement('div');
+            section.className = `test-section ${success ? 'success' : 'error'}`;
+            
+            let html = `<h3>${title}</h3>`;
+            if (success) {
+                html += `<p>✅ Success</p>`;
+                html += `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } else {
+                html += `<p>❌ Failed</p>`;
+                html += `<p>${error}</p>`;
+            }
+            
+            section.innerHTML = html;
+            resultsDiv.appendChild(section);
+        }
+
+        async function testHealth() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                addResult('Health Check', response.ok, data);
+            } catch (error) {
+                addResult('Health Check', false, null, error.message);
+            }
+        }
+
+        async function testApplicationsList() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications`);
+                const data = await response.json();
+                addResult('Applications List', response.ok, data);
+            } catch (error) {
+                addResult('Applications List', false, null, error.message);
+            }
+        }
+
+        async function testApplicationDetail() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications/${TEST_APP_ID}`);
+                const data = await response.json();
+                addResult('Application Detail', response.ok, data);
+            } catch (error) {
+                addResult('Application Detail', false, null, error.message);
+            }
+        }
+
+        async function testCreditAssessment() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications/${TEST_APP_ID}/credit-assessment`);
+                const data = await response.json();
+                addResult('Credit Assessment', response.ok, data);
+            } catch (error) {
+                addResult('Credit Assessment', false, null, error.message);
+            }
+        }
+
+        async function testRecommendation() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications/${TEST_APP_ID}/recommendation`);
+                const data = await response.json();
+                addResult('Loan Recommendation', response.ok, data);
+            } catch (error) {
+                addResult('Loan Recommendation', false, null, error.message);
+            }
+        }
+
+        async function testResearch() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications/${TEST_APP_ID}/research`);
+                const data = await response.json();
+                addResult('Research Data', response.ok, data);
+            } catch (error) {
+                addResult('Research Data', false, null, error.message);
+            }
+        }
+
+        async function testCAM() {
+            try {
+                const response = await fetch(`${API_BASE}/api/applications/${TEST_APP_ID}/cam`);
+                const data = await response.json();
+                addResult('CAM Document', response.ok, data);
+            } catch (error) {
+                addResult('CAM Document', false, null, error.message);
+            }
+        }
+
+        async function testAll() {
+            document.getElementById('results').innerHTML = '';
+            await testHealth();
+            await testApplicationsList();
+            await testApplicationDetail();
+            await testCreditAssessment();
+            await testRecommendation();
+            await testResearch();
+            await testCAM();
+        }
+    </script>
+</body>
+</html>

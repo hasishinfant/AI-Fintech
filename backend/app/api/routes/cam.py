@@ -42,27 +42,24 @@ async def generate_cam(
     - **application_id**: UUID of the application
     """
     try:
-        app_repo = ApplicationRepository(db)
-        application = app_repo.get_by_id(application_id)
+        from datetime import datetime
         
-        if not application:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Application with ID {application_id} not found"
-            )
-
-        # TODO: Call CAMGenerator service to generate CAM
-        # cam_document = cam_generator.generate_cam(application)
-
-        return CAMResponse(
+        # Return mock CAM data
+        mock_cam = CAMResponse(
             application_id=application_id,
-            company_name="",  # TODO: Get from company data
-            generated_date=None,  # TODO: Get from CAM
+            company_name="Tech Corp India",
+            generated_date=datetime.utcnow(),
             version=1,
-            sections={}  # TODO: Get from CAM
+            sections={
+                "executive_summary": "Tech Corp India has applied for a working capital loan of ₹50 lakhs. Based on comprehensive analysis, we recommend approval of ₹45 lakhs at 10.5% interest rate.",
+                "company_overview": "Tech Corp India is a technology services company incorporated in 2020, specializing in software development and IT consulting.",
+                "financial_analysis": "Strong revenue growth of 25% YoY. DSCR of 1.8. Debt-to-equity ratio of 1.2.",
+                "risk_assessment": "Medium risk profile with overall risk score of 72.5/100.",
+                "recommendation": "Approve loan of ₹45 lakhs at 10.5% interest rate for 3 years."
+            }
         )
-    except HTTPException:
-        raise
+        
+        return mock_cam
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -82,24 +79,24 @@ async def get_cam(
     - **application_id**: UUID of the application
     """
     try:
-        app_repo = ApplicationRepository(db)
-        application = app_repo.get_by_id(application_id)
+        from datetime import datetime
         
-        if not application:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Application with ID {application_id} not found"
-            )
-
-        # TODO: Retrieve CAM from storage
-        # cam_document = cam_repository.get_by_application_id(application_id)
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="CAM document not found for this application"
+        # Return mock CAM data
+        mock_cam = CAMResponse(
+            application_id=application_id,
+            company_name="Tech Corp India",
+            generated_date=datetime.utcnow(),
+            version=1,
+            sections={
+                "executive_summary": "Tech Corp India has applied for a working capital loan of ₹50 lakhs. Based on comprehensive analysis, we recommend approval of ₹45 lakhs at 10.5% interest rate.",
+                "company_overview": "Tech Corp India is a technology services company incorporated in 2020, specializing in software development and IT consulting.",
+                "financial_analysis": "Strong revenue growth of 25% YoY. DSCR of 1.8. Debt-to-equity ratio of 1.2.",
+                "risk_assessment": "Medium risk profile with overall risk score of 72.5/100.",
+                "recommendation": "Approve loan of ₹45 lakhs at 10.5% interest rate for 3 years."
+            }
         )
-    except HTTPException:
-        raise
+        
+        return mock_cam
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

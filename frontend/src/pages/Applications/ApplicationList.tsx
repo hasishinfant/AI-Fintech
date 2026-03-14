@@ -1,15 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
-
-interface Application {
-  application_id: string;
-  company_id: string;
-  loan_amount_requested: number;
-  loan_purpose: string;
-  status: string;
-  submitted_date: string;
-}
+import { Application } from '../../types';
 
 export const ApplicationList: React.FC = () => {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -17,7 +9,7 @@ export const ApplicationList: React.FC = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ['applications'],
     queryFn: async () => {
-      const response = await apiClient.get('/applications');
+      const response = await apiClient.get<Application[]>('/applications');
       return response.data;
     },
   });
@@ -29,7 +21,7 @@ export const ApplicationList: React.FC = () => {
   }, [data]);
 
   if (isLoading) return <div className="p-4">Loading applications...</div>;
-  if (error) return <div className="p-4 text-red-600">Error loading applications</div>;
+  if (error) return <div className="p-4 text-red-600">Error loading applications: {error.message}</div>;
 
   return (
     <div className="p-6">
@@ -39,6 +31,7 @@ export const ApplicationList: React.FC = () => {
           <thead className="bg-gray-100">
             <tr>
               <th className="border p-2 text-left">Application ID</th>
+              <th className="border p-2 text-left">Company</th>
               <th className="border p-2 text-left">Loan Amount</th>
               <th className="border p-2 text-left">Purpose</th>
               <th className="border p-2 text-left">Status</th>
@@ -50,6 +43,7 @@ export const ApplicationList: React.FC = () => {
             {applications.map((app) => (
               <tr key={app.application_id} className="hover:bg-gray-50">
                 <td className="border p-2">{app.application_id.slice(0, 8)}</td>
+                <td className="border p-2">{app.company_name || 'N/A'}</td>
                 <td className="border p-2">₹{app.loan_amount_requested.toLocaleString()}</td>
                 <td className="border p-2">{app.loan_purpose}</td>
                 <td className="border p-2">
