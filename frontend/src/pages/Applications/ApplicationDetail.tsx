@@ -2,15 +2,16 @@ import React, { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
+import { Application } from '../../types';
 
 export const ApplicationDetail: React.FC = () => {
   const { applicationId } = useParams<{ applicationId: string }>();
   const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: application, isLoading } = useQuery({
+  const { data: application, isLoading } = useQuery<Application>({
     queryKey: ['application', applicationId],
     queryFn: async () => {
-      const response = await apiClient.get(`/applications/${applicationId}`);
+      const response = await apiClient.get<Application>(`/applications/${applicationId}`);
       return response.data;
     },
   });

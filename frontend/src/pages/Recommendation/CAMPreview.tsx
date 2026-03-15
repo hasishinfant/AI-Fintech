@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
+import { CAMDocument } from '../../types';
 
 interface CAMPreviewProps {
   applicationId: string;
@@ -9,10 +10,10 @@ interface CAMPreviewProps {
 export const CAMPreview: React.FC<CAMPreviewProps> = ({ applicationId }) => {
   const [activeSection, setActiveSection] = useState('executive_summary');
 
-  const { data: cam, isLoading } = useQuery({
+  const { data: cam, isLoading } = useQuery<CAMDocument>({
     queryKey: ['cam', applicationId],
     queryFn: async () => {
-      const response = await apiClient.get(`/applications/${applicationId}/cam`);
+      const response = await apiClient.get<CAMDocument>(`/applications/${applicationId}/cam`);
       return response.data;
     },
   });
@@ -93,7 +94,7 @@ export const CAMPreview: React.FC<CAMPreviewProps> = ({ applicationId }) => {
 
             <div className="prose max-w-none">
               <p className="text-gray-700 whitespace-pre-wrap">
-                {cam.sections[activeSection] || 'No content available'}
+                {cam.sections[activeSection as keyof typeof cam.sections] || 'No content available'}
               </p>
             </div>
           </div>

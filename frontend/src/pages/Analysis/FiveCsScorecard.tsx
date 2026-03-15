@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
+import { CreditAssessment } from '../../types';
 
 interface FiveCsScores {
   character_score: number;
@@ -15,10 +16,10 @@ interface FiveCsScorecardProps {
 }
 
 export const FiveCsScorecard: React.FC<FiveCsScorecardProps> = ({ applicationId }) => {
-  const { data: assessment, isLoading } = useQuery({
+  const { data: assessment, isLoading } = useQuery<CreditAssessment>({
     queryKey: ['credit-assessment', applicationId],
     queryFn: async () => {
-      const response = await apiClient.get(`/applications/${applicationId}/credit-assessment`);
+      const response = await apiClient.get<CreditAssessment>(`/applications/${applicationId}/credit-assessment`);
       return response.data;
     },
   });

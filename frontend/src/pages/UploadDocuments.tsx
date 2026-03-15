@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { apiClient } from '../services/api';
+import { apiClient } from '../api/client';
 import { UploadPanel } from '../components/UploadPanel';
 
 export const UploadDocuments: React.FC = () => {
@@ -11,10 +11,10 @@ export const UploadDocuments: React.FC = () => {
 
   const createApplicationMutation = useMutation({
     mutationFn: async (name: string) => {
-      const response = await apiClient.post('/applications', { company_name: name });
+      const response = await apiClient.post<{ application_id: string }>('/applications', { company_name: name });
       return response.data;
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { application_id: string }) => {
       setApplicationId(data.application_id);
     },
   });

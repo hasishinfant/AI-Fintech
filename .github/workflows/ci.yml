@@ -31,9 +31,10 @@ jobs:
       - name: Run Pytest
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'test-secret-key-at-least-thirty-two-bytes-long' }}
+          DATABASE_URL: sqlite:///./test.db
         run: |
           cd backend
-          pytest tests
+          python -m pytest tests
 
   frontend-lint:
     runs-on: ubuntu-latest
