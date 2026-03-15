@@ -1,7 +1,7 @@
 """Unit tests for API authentication and authorization."""
 
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from uuid import uuid4
 import jwt
 
@@ -66,7 +66,7 @@ class TestTokenCreation:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         
         assert "exp" in payload
-        assert payload["exp"] > datetime.utcnow().timestamp()
+        assert payload["exp"] > datetime.now(UTC).timestamp()
 
 
 class TestTokenVerification:
@@ -110,7 +110,7 @@ class TestTokenVerification:
         """Test verification of token missing user_id."""
         payload = {
             "role": "credit_officer",
-            "exp": datetime.utcnow() + timedelta(hours=1)
+            "exp": datetime.now(UTC) + timedelta(hours=1)
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         
@@ -123,7 +123,7 @@ class TestTokenVerification:
         """Test verification of token missing role."""
         payload = {
             "user_id": str(uuid4()),
-            "exp": datetime.utcnow() + timedelta(hours=1)
+            "exp": datetime.now(UTC) + timedelta(hours=1)
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
         
@@ -140,7 +140,7 @@ class TestTokenData:
         """Test TokenData creation."""
         user_id = uuid4()
         role = "credit_officer"
-        exp = datetime.utcnow() + timedelta(hours=1)
+        exp = datetime.now(UTC) + timedelta(hours=1)
         
         token_data = TokenData(user_id, role, exp)
         
@@ -153,7 +153,7 @@ class TestTokenData:
         user_id = uuid4()
         
         for role in ["credit_officer", "viewer", "admin"]:
-            token_data = TokenData(user_id, role, datetime.utcnow())
+            token_data = TokenData(user_id, role, datetime.now(UTC))
             assert token_data.role == role
 
 

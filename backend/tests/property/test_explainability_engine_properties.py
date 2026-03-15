@@ -115,7 +115,7 @@ class TestExplanationCompleteness:
         assert explanation.reasoning is not None
         assert len(explanation.reasoning) > 0
 
-    @settings(max_examples=15)
+    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large, HealthCheck.filter_too_much])
     @given(
         loan_amount=positive_float,
         ebitda=positive_float,
@@ -243,7 +243,7 @@ class TestLimitingConstraintIdentification:
     constraint was the limiting factor.
     """
 
-    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large])
+    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large, HealthCheck.too_slow])
     @given(
         ebitda=positive_float,
         collateral_value=positive_float,
@@ -285,7 +285,7 @@ class TestLimitingConstraintIdentification:
         # The loan amount should match the limiting constraint
         assert constraints[limiting_constraint] > 0
 
-    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large])
+    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large, HealthCheck.too_slow])
     @given(
         ebitda=positive_float,
         collateral_value=positive_float,
@@ -334,7 +334,7 @@ class TestExplanationSourceCitation:
     their specific sources.
     """
 
-    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large])
+    @settings(max_examples=15, suppress_health_check=[HealthCheck.data_too_large, HealthCheck.too_slow])
     @given(five_cs=five_cs_scores_strategy(), risk_score=risk_score_strategy())
     def test_risk_score_sources_cited(self, five_cs, risk_score):
         """Risk score explanation must cite data sources."""

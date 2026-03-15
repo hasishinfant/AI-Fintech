@@ -1,7 +1,7 @@
 """End-to-end workflow orchestration for Intelli-Credit system."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
 from typing import Dict, Any, Optional
 from uuid import UUID
 import logging
@@ -64,7 +64,7 @@ class WorkflowOrchestrator:
         progress_callback: Optional[callable] = None
     ) -> Dict[str, Any]:
         """Execute complete credit decisioning workflow."""
-        workflow_start = datetime.utcnow()
+        workflow_start = datetime.now(UTC)
         db = SessionLocal()
         uow = UnitOfWork(db)
 
@@ -118,7 +118,7 @@ class WorkflowOrchestrator:
             if progress_callback:
                 await progress_callback("cam_generation", 100)
 
-            workflow_end = datetime.utcnow()
+            workflow_end = datetime.now(UTC)
             workflow_duration = (workflow_end - workflow_start).total_seconds()
 
             logger.info(
@@ -173,7 +173,7 @@ class WorkflowOrchestrator:
 
                 self.audit_trail_manager.record_data_ingestion(
                     source=doc_type,
-                    timestamp=datetime.utcnow(),
+                    timestamp=datetime.now(UTC),
                     method="document_parsing"
                 )
 
@@ -213,7 +213,7 @@ class WorkflowOrchestrator:
 
             self.audit_trail_manager.record_research_activity(
                 url="news_api",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 data_retrieved=f"{len(news_articles)} articles"
             )
 
@@ -229,7 +229,7 @@ class WorkflowOrchestrator:
 
             self.audit_trail_manager.record_research_activity(
                 url="mca_portal",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 data_retrieved="MCA filings"
             )
 
@@ -242,7 +242,7 @@ class WorkflowOrchestrator:
 
             self.audit_trail_manager.record_research_activity(
                 url="ecourts_portal",
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(UTC),
                 data_retrieved=f"{len(legal_cases)} cases"
             )
 
@@ -362,7 +362,7 @@ class WorkflowOrchestrator:
             return {
                 "application_id": str(application_id),
                 "company_name": company_name,
-                "generated_date": datetime.utcnow().isoformat(),
+                "generated_date": datetime.now(UTC).isoformat(),
                 "version": 1,
                 "sections": cam_document.get("sections", {})
             }

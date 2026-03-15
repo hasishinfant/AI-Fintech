@@ -1,7 +1,7 @@
 """Unit tests for database repositories."""
 
 import pytest
-from datetime import datetime, date
+from datetime import datetime, date, UTC
 from uuid import uuid4
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -101,7 +101,7 @@ class TestApplicationRepository:
             company_id=company.company_id,
             loan_amount_requested=1000000.00,
             loan_purpose="Working capital",
-            submitted_date=datetime.utcnow()
+            submitted_date=datetime.now(UTC)
         )
         
         assert application.application_id is not None
@@ -118,7 +118,7 @@ class TestApplicationRepository:
             company_id=company.company_id,
             loan_amount_requested=1000000.00,
             loan_purpose="Working capital",
-            submitted_date=datetime.utcnow()
+            submitted_date=datetime.now(UTC)
         )
         
         updated = app_repo.update_status(application.application_id, "approved")

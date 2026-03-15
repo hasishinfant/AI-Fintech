@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, UTC, timedelta
 from sqlalchemy.orm import Session
 
 from ..models import ResearchDataModel
@@ -56,7 +56,7 @@ class ResearchDataRepository(BaseRepository[ResearchDataModel]):
 
     def get_recent(self, company_id: UUID, days: int = 90) -> List[ResearchDataModel]:
         """Get recent research data within specified days."""
-        cutoff_date = datetime.utcnow() - datetime.timedelta(days=days)
+        cutoff_date = datetime.now(UTC) - timedelta(days=days)
         return self.db.query(ResearchDataModel).filter(
             ResearchDataModel.company_id == company_id,
             ResearchDataModel.retrieved_at >= cutoff_date

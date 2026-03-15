@@ -3,22 +3,31 @@
 from contextlib import contextmanager
 from typing import Generator
 from sqlalchemy import create_engine, event
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, Session, declarative_base
 from sqlalchemy.pool import QueuePool
 
 from app.core.config import settings
 
 # Create engine with connection pooling
+connect_args = {}
+if settings.DATABASE_URL.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
 engine = create_engine(
     settings.DATABASE_URL,
-    poolclass=QueuePool,
-    pool_size=10,  # Number of connections to maintain
-    max_overflow=20,  # Maximum number of connections that can be created beyond pool_size
+    connect_args=connect_args,
     pool_pre_ping=True,  # Verify connections before using them
     pool_recycle=3600,  # Recycle connections after 1 hour
     echo=False  # Set to True for SQL query logging
 )
+
+# For non-SQLite databases, add pooling
+if not settings.DATABASE_URL.startswith("sqlite"):
+    engine.pool = QueuePool(
+        creator=engine.pool._creator,
+        pool_size=10,
+        max_overflow=20
+    )
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

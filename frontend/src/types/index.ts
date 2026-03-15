@@ -9,7 +9,8 @@ export interface Application {
   loan_amount_requested: number
   loan_purpose: string
   submitted_date: string
-  status: 'pending' | 'processing' | 'completed' | 'rejected'
+  status: 'pending' | 'processing' | 'completed' | 'rejected' | 'approved'
+  risk_level?: 'high' | 'medium' | 'low'
   created_at: string
   updated_at: string
 }
@@ -55,14 +56,14 @@ export interface LoanRecommendation {
   risk_score: number
   risk_level: 'high' | 'medium' | 'low'
   limiting_constraint: string
-  explanations: Record<string, any>
+  explanations: Record<string, unknown>
 }
 
 export interface ResearchResult {
   company_id: string
   data_type: string
   source_url?: string
-  content: Record<string, any>
+  content: Record<string, unknown>
   sentiment?: string
   retrieved_at: string
 }

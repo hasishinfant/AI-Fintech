@@ -1,6 +1,6 @@
 """SQLAlchemy ORM models for database tables."""
 
-from datetime import datetime
+from datetime import datetime, UTC
 from decimal import Decimal
 from uuid import uuid4
 from sqlalchemy import (
@@ -62,8 +62,8 @@ class ApplicationModel(Base):
     loan_purpose = Column(Text)
     submitted_date = Column(DateTime, nullable=False)
     status = Column(String(50), nullable=False, default="pending")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     documents = relationship("DocumentModel", back_populates="application", cascade="all, delete-orphan")
@@ -81,8 +81,8 @@ class CompanyModel(Base):
     name = Column(String(255), nullable=False)
     industry = Column(String(100))
     incorporation_date = Column(Date)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     promoters = relationship("PromoterModel", back_populates="company", cascade="all, delete-orphan")
@@ -100,7 +100,7 @@ class PromoterModel(Base):
     din = Column(String(8))
     shareholding = Column(DECIMAL(5, 2))
     role = Column(String(100))
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     company = relationship("CompanyModel", back_populates="promoters")
@@ -114,11 +114,11 @@ class DocumentModel(Base):
     application_id = Column(GUID(), ForeignKey("applications.application_id", ondelete="CASCADE"), nullable=False)
     document_type = Column(String(50), nullable=False)
     file_path = Column(Text, nullable=False)
-    upload_date = Column(DateTime, nullable=False, default=datetime.utcnow)
+    upload_date = Column(DateTime, nullable=False, default=lambda: datetime.now(UTC))
     processed = Column(Boolean, default=False)
     confidence_score = Column(DECIMAL(5, 2))
     extracted_data = Column(JSON)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     application = relationship("ApplicationModel", back_populates="documents")
@@ -139,8 +139,8 @@ class FinancialDataModel(Base):
     total_liabilities = Column(DECIMAL(15, 2))
     equity = Column(DECIMAL(15, 2))
     cash_flow = Column(DECIMAL(15, 2))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     company = relationship("CompanyModel", back_populates="financial_data")
@@ -157,7 +157,7 @@ class ResearchDataModel(Base):
     content = Column(JSON, nullable=False)
     sentiment = Column(String(20))
     retrieved_at = Column(DateTime, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     company = relationship("CompanyModel", back_populates="research_data")
@@ -178,8 +178,8 @@ class CreditAssessmentModel(Base):
     conditions_score = Column(DECIMAL(5, 2))
     max_loan_amount = Column(DECIMAL(15, 2))
     recommended_rate = Column(DECIMAL(5, 2))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     # Relationships
     application = relationship("ApplicationModel", back_populates="credit_assessments")
@@ -195,7 +195,7 @@ class AuditTrailModel(Base):
     description = Column(Text, nullable=False)
     user_id = Column(GUID())
     event_data = Column(JSON)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(UTC))
 
     # Relationships
     application = relationship("ApplicationModel", back_populates="audit_trail")

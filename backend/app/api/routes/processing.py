@@ -16,8 +16,14 @@ from app.api.schemas import (
     ErrorResponse
 )
 from app.api.auth import get_current_user, require_credit_officer, TokenData
+from app.db.repositories.company_repository import CompanyRepository
+from app.db.repositories.research_repository import ResearchDataRepository
+from app.db.repositories.credit_assessment_repository import CreditAssessmentRepository
+import time
+import random
+from datetime import datetime, UTC
 
-router = APIRouter(prefix="/api/applications", tags=["processing"])
+router = APIRouter(prefix="/applications", tags=["processing"])
 
 
 @router.post("/{application_id}/process", status_code=status.HTTP_202_ACCEPTED)
@@ -39,23 +45,99 @@ async def process_application(
     - **application_id**: UUID of the application
     """
     try:
-        # Return mock response for development
+        repo = ApplicationRepository(db)
+        app = repo.get_by_id(application_id)
+        if not app:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Application with ID {application_id} not found"
+            )
+        
+        # Update status to processing
+        repo.update_status(application_id, "processing")
+        
+        # Trigger actual background tasks
+        background_tasks.add_task(run_workflow_background, application_id, db)
+        
         return {
             "status": "processing",
-            "message": "Application processing started",
+            "message": "Application processing started in the background",
             "application_id": str(application_id),
             "workflow_stages": [
-                {"stage": "document_parsing", "status": "queued"},
+                {"stage": "document_parsing", "status": "processing"},
                 {"stage": "research", "status": "queued"},
                 {"stage": "credit_analysis", "status": "queued"},
                 {"stage": "cam_generation", "status": "queued"}
             ]
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to process application: {str(e)}"
         )
+
+
+async def run_workflow_background(application_id: UUID, db: Session):
+    """
+    Simulated background workflow that seeds data and updates status.
+    """
+    try:
+        app_repo = ApplicationRepository(db)
+        application = app_repo.get_by_id(application_id)
+        if not application:
+            return
+
+        # Phase 1: Simulate Parsing (2 seconds)
+        time.sleep(2)
+        
+        # Phase 2: Simulate Research (3 seconds)
+        time.sleep(3)
+        research_repo = ResearchDataRepository(db)
+        
+        # Seed some dummy research if none exists
+        existing_research = research_repo.get_by_company_id(application.company_id)
+        if not existing_research:
+            research_repo.create_research_data(
+                company_id=application.company_id,
+                data_type="news",
+                content={
+                    "title": "Expansion plans for " + (application.company_id.hex[:8]),
+                    "summary": "The company is planning to expand its operations in the next fiscal year."
+                },
+                retrieved_at=datetime.now(UTC),
+                sentiment="positive"
+            )
+
+        # Phase 3: Simulate Credit Analysis (2 seconds)
+        time.sleep(2)
+        assessment_repo = CreditAssessmentRepository(db)
+        
+        # Seed dummy assessment if none exists
+        existing_assessment = assessment_repo.get_by_application_id(application_id)
+        if not existing_assessment:
+            risk_score = random.uniform(60, 85)
+            risk_level = "low" if risk_score > 75 else "medium"
+            assessment_repo.create_assessment(
+                application_id=application_id,
+                risk_score=risk_score,
+                risk_level=risk_level,
+                character_score=random.uniform(70, 90),
+                capacity_score=random.uniform(60, 80),
+                capital_score=random.uniform(65, 85),
+                collateral_score=random.uniform(70, 90),
+                conditions_score=random.uniform(55, 75),
+                max_loan_amount=application.loan_amount_requested * 0.9,
+                recommended_rate=10.5
+            )
+
+        # Phase 4: Finalize
+        app_repo.update_status(application_id, "completed")
+        
+    except Exception as e:
+        print(f"Background task failed for {application_id}: {str(e)}")
+        # In a real app, we'd update the application status to 'failed'
 
 
 @router.get("/{application_id}/research", response_model=list[ResearchResultResponse])
@@ -72,48 +154,29 @@ async def get_research_results(
     - **application_id**: UUID of the application
     """
     try:
-        from datetime import datetime
-        
-        # Return mock research data
-        mock_research = [
-            ResearchResultResponse(
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
-                data_type="news",
-                source_url="https://example.com/news/tech-corp-expansion",
-                content={
-                    "title": "Tech Corp India Announces Major Expansion",
-                    "summary": "Tech Corp India plans to expand operations with new facility in Bangalore",
-                    "date": "2026-03-01"
-                },
-                sentiment="positive",
-                retrieved_at=datetime.utcnow()
-            ),
-            ResearchResultResponse(
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
-                data_type="mca_filing",
-                source_url="https://mca.gov.in/filing/12345",
-                content={
-                    "filing_type": "Annual Return",
-                    "filing_date": "2026-02-15",
-                    "status": "Filed"
-                },
-                sentiment=None,
-                retrieved_at=datetime.utcnow()
-            ),
-            ResearchResultResponse(
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
-                data_type="legal_case",
-                source_url=None,
-                content={
-                    "case_count": 0,
-                    "status": "No pending legal cases found"
-                },
-                sentiment="positive",
-                retrieved_at=datetime.utcnow()
+        app_repo = ApplicationRepository(db)
+        app = app_repo.get_by_id(application_id)
+        if not app:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Application with ID {application_id} not found"
             )
-        ]
         
-        return mock_research
+        repo = ResearchDataRepository(db)
+        results = repo.get_by_company_id(app.company_id)
+        
+        return [
+            ResearchResultResponse(
+                company_id=r.company_id,
+                data_type=r.data_type,
+                source_url=r.source_url,
+                content=r.content,
+                sentiment=r.sentiment,
+                retrieved_at=r.retrieved_at
+            ) for r in results
+        ]
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -135,28 +198,33 @@ async def get_credit_assessment(
     - **application_id**: UUID of the application
     """
     try:
-        from datetime import datetime
-        from uuid import uuid4
+        repo = CreditAssessmentRepository(db)
+        assessment = repo.get_by_application_id(application_id)
         
-        # Return mock credit assessment data
-        mock_assessment = CreditAssessmentResponse(
-            id=uuid4(),
-            application_id=application_id,
-            risk_score=72.5,
-            risk_level="medium",
+        if not assessment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Credit assessment for application {application_id} not found"
+            )
+        
+        return CreditAssessmentResponse(
+            id=assessment.id,
+            application_id=assessment.application_id,
+            risk_score=float(assessment.risk_score),
+            risk_level=assessment.risk_level,
             five_cs_scores=FiveCsScoresResponse(
-                character_score=75.0,
-                capacity_score=68.0,
-                capital_score=80.0,
-                collateral_score=65.0,
-                conditions_score=74.0
+                character_score=float(assessment.character_score) if assessment.character_score else None,
+                capacity_score=float(assessment.capacity_score) if assessment.capacity_score else None,
+                capital_score=float(assessment.capital_score) if assessment.capital_score else None,
+                collateral_score=float(assessment.collateral_score) if assessment.collateral_score else None,
+                conditions_score=float(assessment.conditions_score) if assessment.conditions_score else None
             ),
-            max_loan_amount=4500000.0,
-            recommended_rate=10.5,
-            created_at=datetime.utcnow()
+            max_loan_amount=float(assessment.max_loan_amount) if assessment.max_loan_amount else None,
+            recommended_rate=float(assessment.recommended_rate) if assessment.recommended_rate else None,
+            created_at=assessment.created_at
         )
-        
-        return mock_assessment
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -178,25 +246,35 @@ async def get_loan_recommendation(
     - **application_id**: UUID of the application
     """
     try:
-        # Return mock recommendation data
-        mock_recommendation = LoanRecommendationResponse(
-            max_loan_amount=4500000.0,
-            recommended_interest_rate=10.5,
-            risk_score=72.5,
-            risk_level="medium",
+        repo = CreditAssessmentRepository(db)
+        assessment = repo.get_by_application_id(application_id)
+        
+        if not assessment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Recommendation for application {application_id} not found"
+            )
+        
+        # Map to recommendation response
+        return LoanRecommendationResponse(
+            max_loan_amount=float(assessment.max_loan_amount) if assessment.max_loan_amount else 0.0,
+            recommended_interest_rate=float(assessment.recommended_rate) if assessment.recommended_rate else 0.0,
+            risk_score=float(assessment.risk_score),
+            risk_level=assessment.risk_level,
+            # In a real app, these would come from an explainability engine
             limiting_constraint="Debt Service Coverage Ratio",
             explanations={
-                "max_loan_amount": "Based on DSCR of 1.8 and annual revenue of ₹50M",
-                "interest_rate": "Base rate 9% + risk premium 1.5% based on medium risk profile",
+                "max_loan_amount": f"Based on risk score of {assessment.risk_score} and assessment criteria.",
+                "interest_rate": f"Base rate plus risk premium for {assessment.risk_level} risk level.",
                 "risk_factors": [
-                    "Strong revenue growth of 25% YoY",
-                    "Moderate debt-to-equity ratio of 1.2",
-                    "Good payment history with existing lenders"
+                    f"Character score: {assessment.character_score}",
+                    f"Capacity score: {assessment.capacity_score}",
+                    f"Capital score: {assessment.capital_score}"
                 ]
             }
         )
-        
-        return mock_recommendation
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

@@ -1,6 +1,6 @@
 """Authentication and authorization utilities."""
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from typing import Optional
 from uuid import UUID
 import jwt
@@ -20,15 +20,15 @@ class TokenData:
 def create_access_token(user_id: UUID, role: str, expires_delta: Optional[timedelta] = None) -> str:
     """Create a JWT access token."""
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(hours=24)
+        expire = datetime.now(UTC) + timedelta(hours=24)
 
     payload = {
         "user_id": str(user_id),
         "role": role,
         "exp": expire,
-        "iat": datetime.utcnow()
+        "iat": datetime.now(UTC)
     }
 
     encoded_jwt = jwt.encode(
@@ -76,14 +76,10 @@ def verify_token(token: str) -> TokenData:
 
 async def get_current_user(authorization: Optional[str] = Header(None)) -> TokenData:
     """Get current authenticated user from token."""
-    # In development mode, allow requests without authentication
     if not authorization:
-        # Return a mock user for development
-        from uuid import uuid4
-        return TokenData(
-            user_id=uuid4(),
-            role="credit_officer",
-            exp=datetime.utcnow() + timedelta(hours=24)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header"
         )
     
     try:
@@ -101,8 +97,9 @@ async def get_current_user(authorization: Optional[str] = Header(None)) -> Token
 
 async def require_credit_officer(current_user: TokenData = Depends(get_current_user)) -> TokenData:
     """Require user to have Credit Officer role."""
-    # In development mode, always allow access
     if current_user.role != "credit_officer":
-        # For development, just log and allow
-        pass
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Operation requires Credit Officer role"
+        )
     return current_user

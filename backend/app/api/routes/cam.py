@@ -6,8 +6,11 @@ from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 import io
 
+from datetime import datetime, UTC
 from app.db.database import get_db
 from app.db.repositories.application_repository import ApplicationRepository
+from app.db.repositories.company_repository import CompanyRepository
+from app.db.repositories.credit_assessment_repository import CreditAssessmentRepository
 from app.api.schemas import (
     CAMGenerateRequest,
     CAMResponse,
@@ -15,8 +18,12 @@ from app.api.schemas import (
     ErrorResponse
 )
 from app.api.auth import get_current_user, require_credit_officer, TokenData
+from app.services.cam_generator.document_exporter import DocumentExporter
+from app.models.cam import CAMDocument, AuditTrail
+import tempfile
+import os
 
-router = APIRouter(prefix="/api/applications", tags=["cam"])
+router = APIRouter(prefix="/applications", tags=["cam"])
 
 
 @router.post("/{application_id}/cam/generate", response_model=CAMResponse, status_code=status.HTTP_201_CREATED)
@@ -27,39 +34,42 @@ async def generate_cam(
 ) -> CAMResponse:
     """
     Generate a Credit Appraisal Memo (CAM) for an application.
-    
-    This endpoint generates a complete CAM document with:
-    - Executive Summary
-    - Company Overview
-    - Industry Analysis
-    - Financial Analysis
-    - Risk Assessment
-    - Five Cs Summary
-    - Final Recommendation
-    - Explainability Notes
-    - Audit Trail
-    
-    - **application_id**: UUID of the application
     """
     try:
-        from datetime import datetime
+        app_repo = ApplicationRepository(db)
+        application = app_repo.get_by_id(application_id)
+        if not application:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Application with ID {application_id} not found"
+            )
         
-        # Return mock CAM data
-        mock_cam = CAMResponse(
+        company_repo = CompanyRepository(db)
+        company = company_repo.get_by_id(application.company_id)
+        
+        assessment_repo = CreditAssessmentRepository(db)
+        assessment = assessment_repo.get_by_application_id(application_id)
+        
+        from datetime import UTC
+        
+        # Aggregate data into CAM sections
+        sections = {
+            "executive_summary": f"{company.name if company else 'The applicant'} has requested a loan of ₹{application.loan_amount_requested}. Current status is {application.status}.",
+            "company_overview": f"Company: {company.name if company else 'Unknown'}. Industry: {company.industry if company else 'Unknown'}.",
+            "financial_analysis": "Detailed financial analysis based on submitted documents.",
+            "risk_assessment": f"Risk Level: {assessment.risk_level if assessment else 'Not Assessed'}. Risk Score: {assessment.risk_score if assessment else 'N/A'}.",
+            "recommendation": f"Recommended Loan: ₹{assessment.max_loan_amount if assessment else 'N/A'} at {assessment.recommended_rate if assessment else 'N/A'}%."
+        }
+        
+        return CAMResponse(
             application_id=application_id,
-            company_name="Tech Corp India",
-            generated_date=datetime.utcnow(),
+            company_name=company.name if company else "Unknown",
+            generated_date=datetime.now(UTC),
             version=1,
-            sections={
-                "executive_summary": "Tech Corp India has applied for a working capital loan of ₹50 lakhs. Based on comprehensive analysis, we recommend approval of ₹45 lakhs at 10.5% interest rate.",
-                "company_overview": "Tech Corp India is a technology services company incorporated in 2020, specializing in software development and IT consulting.",
-                "financial_analysis": "Strong revenue growth of 25% YoY. DSCR of 1.8. Debt-to-equity ratio of 1.2.",
-                "risk_assessment": "Medium risk profile with overall risk score of 72.5/100.",
-                "recommendation": "Approve loan of ₹45 lakhs at 10.5% interest rate for 3 years."
-            }
+            sections=sections
         )
-        
-        return mock_cam
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -75,33 +85,26 @@ async def get_cam(
 ) -> CAMResponse:
     """
     Get a previously generated CAM document.
-    
-    - **application_id**: UUID of the application
     """
-    try:
-        from datetime import datetime
-        
-        # Return mock CAM data
-        mock_cam = CAMResponse(
-            application_id=application_id,
-            company_name="Tech Corp India",
-            generated_date=datetime.utcnow(),
-            version=1,
-            sections={
-                "executive_summary": "Tech Corp India has applied for a working capital loan of ₹50 lakhs. Based on comprehensive analysis, we recommend approval of ₹45 lakhs at 10.5% interest rate.",
-                "company_overview": "Tech Corp India is a technology services company incorporated in 2020, specializing in software development and IT consulting.",
-                "financial_analysis": "Strong revenue growth of 25% YoY. DSCR of 1.8. Debt-to-equity ratio of 1.2.",
-                "risk_assessment": "Medium risk profile with overall risk score of 72.5/100.",
-                "recommendation": "Approve loan of ₹45 lakhs at 10.5% interest rate for 3 years."
-            }
-        )
-        
-        return mock_cam
-    except Exception as e:
+    app_repo = ApplicationRepository(db)
+    application = app_repo.get_by_id(application_id)
+    if not application:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve CAM: {str(e)}"
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Application with ID {application_id} not found"
         )
+    
+    # Check if a credit assessment exists - if not, the CAM hasn't been "generated" yet
+    assessment_repo = CreditAssessmentRepository(db)
+    assessment = assessment_repo.get_by_application_id(application_id)
+    if not assessment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="CAM document not found for this application. Please generate it first."
+        )
+    
+    # For now, we regenerate it on the fly as we don't have a CAM table yet
+    return await generate_cam(application_id, db, current_user)
 
 
 @router.get("/{application_id}/cam/export/word")
@@ -125,13 +128,37 @@ async def export_cam_to_word(
                 detail=f"Application with ID {application_id} not found"
             )
 
-        # TODO: Call DocumentExporter to export to Word
-        # word_bytes = document_exporter.export_to_word(cam_document)
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="CAM document not found for this application"
+        # Get CAM data
+        cam_data = await get_cam(application_id, db, current_user)
+        
+        # Create CAMDocument object
+        cam_doc = CAMDocument(
+            application_id=str(application_id),
+            company_name=cam_data.company_name,
+            generated_date=cam_data.generated_date,
+            sections=cam_data.sections,
+            version=cam_data.version,
+            audit_trail=AuditTrail(events=[]) # Empty for now
         )
+
+        # Export to Word
+        exporter = DocumentExporter()
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".docx") as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            exporter.export_to_word(cam_doc, tmp_path)
+            return FileResponse(
+                path=tmp_path,
+                filename=f"CAM_{cam_doc.company_name.replace(' ', '_')}.docx",
+                media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            )
+        except Exception as e:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise e
+
     except HTTPException:
         raise
     except Exception as e:
@@ -162,13 +189,37 @@ async def export_cam_to_pdf(
                 detail=f"Application with ID {application_id} not found"
             )
 
-        # TODO: Call DocumentExporter to export to PDF
-        # pdf_bytes = document_exporter.export_to_pdf(cam_document)
-
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="CAM document not found for this application"
+        # Get CAM data
+        cam_data = await get_cam(application_id, db, current_user)
+        
+        # Create CAMDocument object
+        cam_doc = CAMDocument(
+            application_id=str(application_id),
+            company_name=cam_data.company_name,
+            generated_date=cam_data.generated_date,
+            sections=cam_data.sections,
+            version=cam_data.version,
+            audit_trail=AuditTrail(events=[]) # Empty for now
         )
+
+        # Export to PDF
+        exporter = DocumentExporter()
+        
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            tmp_path = tmp.name
+        
+        try:
+            exporter.export_to_pdf(cam_doc, tmp_path)
+            return FileResponse(
+                path=tmp_path,
+                filename=f"CAM_{cam_doc.company_name.replace(' ', '_')}.pdf",
+                media_type="application/pdf"
+            )
+        except Exception as e:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+            raise e
+
     except HTTPException:
         raise
     except Exception as e:

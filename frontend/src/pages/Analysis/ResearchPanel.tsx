@@ -1,11 +1,12 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
+import { ResearchResult } from '../../types';
 
 interface ResearchData {
   data_type: string;
   source_url?: string;
-  content: Record<string, any>;
+  content: Record<string, unknown>;
   sentiment?: string;
   retrieved_at: string;
 }
@@ -15,10 +16,10 @@ interface ResearchPanelProps {
 }
 
 export const ResearchPanel: React.FC<ResearchPanelProps> = ({ applicationId }) => {
-  const { data: research, isLoading } = useQuery({
+  const { data: research, isLoading } = useQuery<ResearchResult[]>({
     queryKey: ['research', applicationId],
     queryFn: async () => {
-      const response = await apiClient.get(`/applications/${applicationId}/research`);
+      const response = await apiClient.get<ResearchResult[]>(`/applications/${applicationId}/research`);
       return response.data;
     },
   });

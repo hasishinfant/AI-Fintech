@@ -4,13 +4,13 @@ import App from './App'
 describe('App', () => {
   it('renders the application title', () => {
     render(<App />)
-    const titleElement = screen.getByText(/Intelli-Credit/i)
-    expect(titleElement).toBeInTheDocument()
+    const titleElements = screen.getAllByText(/Intelli-Credit/i)
+    expect(titleElements.length).toBeGreaterThan(0)
   })
 
-  it('renders the welcome message', () => {
+  it('renders the hero message', () => {
     render(<App />)
-    const welcomeElement = screen.getByText(/Welcome to Intelli-Credit/i)
-    expect(welcomeElement).toBeInTheDocument()
+    const heroElement = screen.getByText(/Best Financing Solutions/i)
+    expect(heroElement).toBeInTheDocument()
   })
 })

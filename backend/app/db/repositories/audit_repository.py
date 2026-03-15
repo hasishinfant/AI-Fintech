@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime
+from datetime import datetime, UTC
 from sqlalchemy.orm import Session
 
 from ..models import AuditTrailModel
@@ -31,7 +31,7 @@ class AuditTrailRepository(BaseRepository[AuditTrailModel]):
             application_id=application_id,
             user_id=user_id,
             event_data=event_data,
-            timestamp=timestamp or datetime.utcnow()
+            timestamp=timestamp or datetime.now(UTC)
         )
 
     def get_by_application_id(self, application_id: UUID) -> List[AuditTrailModel]:

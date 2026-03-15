@@ -3,7 +3,7 @@ import React from 'react';
 interface ResearchData {
   data_type: string;
   source_url?: string;
-  content: Record<string, any>;
+  content: Record<string, unknown>;
   sentiment?: string;
   retrieved_at: string;
 }

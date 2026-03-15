@@ -28,13 +28,15 @@ def test_engine():
 
 @pytest.fixture(scope="function")
 def test_db(test_engine):
-    """Create test database session"""
+    """Create test database session with full isolation (create/drop per test)."""
+    Base.metadata.create_all(bind=test_engine)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_engine)
     db = TestingSessionLocal()
     try:
         yield db
     finally:
         db.close()
+        Base.metadata.drop_all(bind=test_engine)
 
 
 @pytest.fixture(scope="function")

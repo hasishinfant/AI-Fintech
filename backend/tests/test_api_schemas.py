@@ -1,7 +1,7 @@
 """Unit tests for API schemas and validation."""
 
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 from pydantic import ValidationError
 
@@ -35,20 +35,25 @@ class TestApplicationSchemas:
         assert request.loan_amount_requested == 1000000.00
         assert request.loan_purpose == "Working Capital"
 
-    def test_application_create_request_missing_field(self):
-        """Test application creation request with missing field."""
-        with pytest.raises(ValidationError):
-            ApplicationCreateRequest(
-                company_id=uuid4(),
-                loan_amount_requested=1000000.00
-                # Missing loan_purpose
-            )
+    def test_application_create_request_flexible(self):
+        """Test application creation request with flexible inputs."""
+        # Only company_name
+        request = ApplicationCreateRequest(company_name="Test Corp")
+        assert request.company_name == "Test Corp"
+        assert request.loan_amount_requested == 0.0
+        assert request.loan_purpose == "Working Capital"
+        
+        # Only company_id
+        company_id = uuid4()
+        request = ApplicationCreateRequest(company_id=company_id)
+        assert request.company_id == company_id
+        assert request.loan_amount_requested == 0.0
 
     def test_application_response_valid(self):
         """Test valid application response."""
         app_id = uuid4()
         company_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = ApplicationResponse(
             application_id=app_id,
@@ -67,7 +72,7 @@ class TestApplicationSchemas:
     def test_application_status_response_valid(self):
         """Test valid application status response."""
         app_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = ApplicationStatusResponse(
             application_id=app_id,
@@ -95,7 +100,7 @@ class TestDocumentSchemas:
         """Test valid document response."""
         doc_id = uuid4()
         app_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = DocumentResponse(
             document_id=doc_id,
@@ -146,7 +151,7 @@ class TestCreditAssessmentSchemas:
         """Test valid credit assessment response."""
         assessment_id = uuid4()
         app_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = CreditAssessmentResponse(
             id=assessment_id,
@@ -194,7 +199,7 @@ class TestCAMSchemas:
     def test_cam_response_valid(self):
         """Test valid CAM response."""
         app_id = uuid4()
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = CAMResponse(
             application_id=app_id,
@@ -217,7 +222,7 @@ class TestErrorSchemas:
 
     def test_error_response_valid(self):
         """Test valid error response."""
-        now = datetime.utcnow()
+        now = datetime.now(UTC)
         
         response = ErrorResponse(
             detail="Application not found",

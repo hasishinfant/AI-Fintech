@@ -1,5 +1,6 @@
 """Application management endpoints."""
 
+from typing import List, Optional, Any
 from datetime import datetime
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -18,7 +19,7 @@ from app.api.schemas import (
 )
 from app.api.auth import get_current_user, require_credit_officer, TokenData
 
-router = APIRouter(prefix="/api/applications", tags=["applications"])
+router = APIRouter(prefix="/applications", tags=["applications"])
 
 
 @router.get("", response_model=list[ApplicationResponse])
@@ -32,47 +33,26 @@ async def list_applications(
     Returns a list of all applications in the system.
     """
     try:
-        # Return mock data for development
-        from datetime import datetime
-        from uuid import UUID
+        repo = ApplicationRepository(db)
+        applications = repo.get_all()
         
-        mock_applications = [
-            ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
-                company_name="Tech Corp India",
-                loan_amount_requested=5000000.0,
-                loan_purpose="Working Capital",
-                status="pending",
-                submitted_date=datetime.fromisoformat("2026-03-14T10:00:00"),
-                created_at=datetime.fromisoformat("2026-03-14T10:00:00"),
-                updated_at=datetime.fromisoformat("2026-03-14T10:00:00")
-            ),
-            ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440001"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440001"),
-                company_name="Manufacturing Ltd",
-                loan_amount_requested=10000000.0,
-                loan_purpose="Equipment Purchase",
-                status="processing",
-                submitted_date=datetime.fromisoformat("2026-03-13T15:30:00"),
-                created_at=datetime.fromisoformat("2026-03-13T15:30:00"),
-                updated_at=datetime.fromisoformat("2026-03-13T15:30:00")
-            ),
-            ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440002"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440002"),
-                company_name="Retail Enterprises",
-                loan_amount_requested=7500000.0,
-                loan_purpose="Business Expansion",
-                status="completed",
-                submitted_date=datetime.fromisoformat("2026-03-10T09:15:00"),
-                created_at=datetime.fromisoformat("2026-03-10T09:15:00"),
-                updated_at=datetime.fromisoformat("2026-03-10T09:15:00")
-            )
-        ]
-        
-        return mock_applications
+        # We need to add company_name to the response
+        company_repo = CompanyRepository(db)
+        results = []
+        for app in applications:
+            company = company_repo.get_by_id(app.company_id)
+            results.append(ApplicationResponse(
+                application_id=app.application_id,
+                company_id=app.company_id,
+                company_name=company.name if company else "Unknown",
+                loan_amount_requested=app.loan_amount_requested,
+                loan_purpose=app.loan_purpose,
+                status=app.status,
+                submitted_date=app.submitted_date,
+                created_at=app.created_at,
+                updated_at=app.updated_at
+            ))
+        return results
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -85,35 +65,55 @@ async def create_application(
     request: ApplicationCreateRequest,
     db: Session = Depends(get_db),
     current_user: TokenData = Depends(require_credit_officer)
-) -> ApplicationResponse:
-    """
-    Create a new loan application.
-    
-    - **company_id**: UUID of the company
-    - **loan_amount_requested**: Requested loan amount
-    - **loan_purpose**: Purpose of the loan
-    """
+) -> Any:
+    """Create a new loan application."""
     try:
-        # Verify company exists
-        company_repo = CompanyRepository(db)
-        company = company_repo.get_by_id(request.company_id)
-        if not company:
+        # 1. Handle Company (find or create)
+        company_id = request.company_id
+        if not company_id and request.company_name:
+            company_repo = CompanyRepository(db)
+            companies = company_repo.search_by_name(request.company_name)
+            if companies:
+                company = companies[0]
+                company_id = company.company_id
+            else:
+                company = company_repo.create_company(name=request.company_name)
+                company_id = company.company_id
+        elif company_id:
+            company_repo = CompanyRepository(db)
+            company = company_repo.get_by_id(company_id)
+            if not company:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Company with ID {company_id} not found"
+                )
+        else:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Company with ID {request.company_id} not found"
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Either company_id or company_name must be provided"
             )
 
-        # Create application
-        app_repo = ApplicationRepository(db)
-        application = app_repo.create_application(
-            company_id=request.company_id,
+        # 2. Create Application
+        repo = ApplicationRepository(db)
+        from datetime import UTC
+        application = repo.create_application(
+            company_id=company_id,
             loan_amount_requested=request.loan_amount_requested,
             loan_purpose=request.loan_purpose,
-            submitted_date=datetime.utcnow(),
-            status="pending"
+            submitted_date=datetime.now(UTC)
         )
-
-        return ApplicationResponse.from_orm(application)
+        
+        return ApplicationResponse(
+            application_id=application.application_id,
+            company_id=application.company_id,
+            company_name=company.name,
+            loan_amount_requested=float(application.loan_amount_requested),
+            loan_purpose=application.loan_purpose,
+            status=application.status,
+            submitted_date=application.submitted_date,
+            created_at=application.created_at,
+            updated_at=application.updated_at
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -135,52 +135,28 @@ async def get_application(
     - **application_id**: UUID of the application
     """
     try:
-        # Return mock data for development
-        from datetime import datetime
+        repo = ApplicationRepository(db)
+        app = repo.get_by_id(application_id)
         
-        # Mock data mapping
-        mock_data = {
-            UUID("550e8400-e29b-41d4-a716-446655440000"): ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440000"),
-                company_name="Tech Corp India",
-                loan_amount_requested=5000000.0,
-                loan_purpose="Working Capital",
-                status="pending",
-                submitted_date=datetime.fromisoformat("2026-03-14T10:00:00"),
-                created_at=datetime.fromisoformat("2026-03-14T10:00:00"),
-                updated_at=datetime.fromisoformat("2026-03-14T10:00:00")
-            ),
-            UUID("550e8400-e29b-41d4-a716-446655440001"): ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440001"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440001"),
-                company_name="Manufacturing Ltd",
-                loan_amount_requested=10000000.0,
-                loan_purpose="Equipment Purchase",
-                status="processing",
-                submitted_date=datetime.fromisoformat("2026-03-13T15:30:00"),
-                created_at=datetime.fromisoformat("2026-03-13T15:30:00"),
-                updated_at=datetime.fromisoformat("2026-03-13T15:30:00")
-            ),
-            UUID("550e8400-e29b-41d4-a716-446655440002"): ApplicationResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440002"),
-                company_id=UUID("660e8400-e29b-41d4-a716-446655440002"),
-                company_name="Retail Enterprises",
-                loan_amount_requested=7500000.0,
-                loan_purpose="Business Expansion",
-                status="completed",
-                submitted_date=datetime.fromisoformat("2026-03-10T09:15:00"),
-                created_at=datetime.fromisoformat("2026-03-10T09:15:00"),
-                updated_at=datetime.fromisoformat("2026-03-10T09:15:00")
+        if not app:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Application with ID {application_id} not found"
             )
-        }
         
-        if application_id in mock_data:
-            return mock_data[application_id]
+        company_repo = CompanyRepository(db)
+        company = company_repo.get_by_id(app.company_id)
         
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Application with ID {application_id} not found"
+        return ApplicationResponse(
+            application_id=app.application_id,
+            company_id=app.company_id,
+            company_name=company.name if company else "Unknown",
+            loan_amount_requested=app.loan_amount_requested,
+            loan_purpose=app.loan_purpose,
+            status=app.status,
+            submitted_date=app.submitted_date,
+            created_at=app.created_at,
+            updated_at=app.updated_at
         )
     except HTTPException:
         raise
@@ -206,32 +182,30 @@ async def upload_document(
     - **file_path**: Path to the uploaded file
     """
     try:
-        app_repo = ApplicationRepository(db)
-        
-        # Verify application exists
-        application = app_repo.get_by_id(application_id)
-        if not application:
+        repo = ApplicationRepository(db)
+        app = repo.get_by_id(application_id)
+        if not app:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Application with ID {application_id} not found"
             )
-
-        # Add document
-        document = app_repo.add_document(
+        
+        from datetime import UTC
+        doc = repo.add_document(
             application_id=application_id,
             document_type=request.document_type,
             file_path=request.file_path,
-            upload_date=datetime.utcnow(),
-            processed=False
+            upload_date=datetime.now(UTC)
         )
-
-        if not document:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to add document"
-            )
-
-        return DocumentResponse.from_orm(document)
+        
+        return DocumentResponse(
+            document_id=doc.document_id,
+            application_id=doc.application_id,
+            document_type=doc.document_type,
+            file_path=doc.file_path,
+            upload_date=doc.upload_date,
+            processed=doc.processed
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -253,33 +227,19 @@ async def get_application_status(
     - **application_id**: UUID of the application
     """
     try:
-        from datetime import datetime
+        repo = ApplicationRepository(db)
+        app = repo.get_by_id(application_id)
         
-        # Mock status data
-        mock_statuses = {
-            UUID("550e8400-e29b-41d4-a716-446655440000"): ApplicationStatusResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
-                status="pending",
-                updated_at=datetime.fromisoformat("2026-03-14T10:00:00")
-            ),
-            UUID("550e8400-e29b-41d4-a716-446655440001"): ApplicationStatusResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440001"),
-                status="processing",
-                updated_at=datetime.fromisoformat("2026-03-13T15:30:00")
-            ),
-            UUID("550e8400-e29b-41d4-a716-446655440002"): ApplicationStatusResponse(
-                application_id=UUID("550e8400-e29b-41d4-a716-446655440002"),
-                status="completed",
-                updated_at=datetime.fromisoformat("2026-03-10T09:15:00")
+        if not app:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Application with ID {application_id} not found"
             )
-        }
         
-        if application_id in mock_statuses:
-            return mock_statuses[application_id]
-        
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Application with ID {application_id} not found"
+        return ApplicationStatusResponse(
+            application_id=app.application_id,
+            status=app.status,
+            updated_at=app.updated_at
         )
     except HTTPException:
         raise

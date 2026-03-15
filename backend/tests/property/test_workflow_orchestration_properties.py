@@ -7,7 +7,7 @@ Properties tested:
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, UTC
 from hypothesis import given, strategies as st, settings, HealthCheck
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
@@ -64,7 +64,7 @@ def test_workflow_automation_end_to_end(company_name, revenue, ebitda):
             }
         },
         "workflow_duration_seconds": 45.0,
-        "completed_at": datetime.utcnow().isoformat()
+        "completed_at": datetime.now(UTC).isoformat()
     }
     
     mock_orchestrator.orchestrate_full_workflow = AsyncMock(return_value=workflow_result)
@@ -127,7 +127,7 @@ def test_workflow_completion_time(company_name, revenue, ebitda):
         "credit_assessment": {},
         "cam_document": {"sections": {}},
         "workflow_duration_seconds": 120.0,
-        "completed_at": datetime.utcnow().isoformat()
+        "completed_at": datetime.now(UTC).isoformat()
     }
     
     mock_orchestrator.orchestrate_full_workflow = AsyncMock(return_value=workflow_result)

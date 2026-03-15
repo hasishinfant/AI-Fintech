@@ -1,6 +1,8 @@
-import axios, { AxiosInstance } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const API_BASE_URL = typeof process !== 'undefined' && process.env.VITE_API_URL 
+  ? process.env.VITE_API_URL 
+  : 'http://localhost:8000/api';
 
 class ApiClient {
   private client: AxiosInstance;
@@ -26,7 +28,7 @@ class ApiClient {
     this.client.interceptors.response.use(
       (response) => response,
       (error) => {
-        if (error.response?.status === 401) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
           localStorage.removeItem('auth_token');
           window.location.href = '/login';
         }
@@ -35,19 +37,19 @@ class ApiClient {
     );
   }
 
-  get<T = any>(url: string, config?: any) {
+  get<T = unknown>(url: string, config?: AxiosRequestConfig) {
     return this.client.get<T>(url, config);
   }
 
-  post<T = any>(url: string, data?: any, config?: any) {
+  post<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.client.post<T>(url, data, config);
   }
 
-  put<T = any>(url: string, data?: any, config?: any) {
+  put<T = unknown>(url: string, data?: unknown, config?: AxiosRequestConfig) {
     return this.client.put<T>(url, data, config);
   }
 
-  delete<T = any>(url: string, config?: any) {
+  delete<T = unknown>(url: string, config?: AxiosRequestConfig) {
     return this.client.delete<T>(url, config);
   }
 

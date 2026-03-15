@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     CIBIL_API_KEY: str = ""
 
     # Security
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str = "your-secret-key-must-be-at-least-thirty-two-characters-long"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 

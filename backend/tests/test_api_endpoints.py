@@ -1,7 +1,7 @@
 """Unit tests for API endpoints."""
 
 import pytest
-from datetime import datetime
+from datetime import datetime, UTC
 from uuid import uuid4
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -29,9 +29,11 @@ def auth_headers(auth_token):
 @pytest.fixture
 def sample_company(test_db: Session):
     """Create a sample company for testing."""
+    # Use a unique CIN for each company to avoid IntegrityError
+    unique_cin = f"U{uuid4().hex[:6].upper()}AB1234C123456"[:21]
     company = CompanyModel(
         company_id=uuid4(),
-        cin="U12345AB1234C123456",
+        cin=unique_cin,
         gstin="27AABCT1234H1Z0",
         name="Test Company Ltd",
         industry="Manufacturing",
@@ -51,7 +53,7 @@ def sample_application(test_db: Session, sample_company):
         company_id=sample_company.company_id,
         loan_amount_requested=1000000.00,
         loan_purpose="Working Capital",
-        submitted_date=datetime.utcnow(),
+        submitted_date=datetime.now(UTC),
         status="pending"
     )
     test_db.add(application)
@@ -100,7 +102,7 @@ class TestApplicationManagementEndpoints:
         }
         response = client.post("/api/applications", json=payload)
         
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_get_application_success(self, client: TestClient, auth_headers, sample_application):
         """Test successful application retrieval."""
@@ -178,7 +180,7 @@ class TestApplicationManagementEndpoints:
             json=payload
         )
         
-        assert response.status_code == 403
+        assert response.status_code == 401
 
 
 class TestProcessingEndpoints:
@@ -212,7 +214,7 @@ class TestProcessingEndpoints:
             company_id=sample_application.company_id,
             data_type="news",
             content={"title": "Test News", "content": "Test content"},
-            retrieved_at=datetime.utcnow(),
+            retrieved_at=datetime.now(UTC),
             source_url="https://example.com",
             sentiment="positive"
         )
@@ -371,7 +373,7 @@ class TestAuthenticationAndAuthorization:
         """Test endpoint access without authorization header."""
         response = client.get("/api/applications/123")
         
-        assert response.status_code == 403
+        assert response.status_code == 401
 
     def test_invalid_token(self, client: TestClient):
         """Test endpoint access with invalid token."""

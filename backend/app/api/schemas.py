@@ -4,15 +4,17 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from uuid import UUID
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
+from datetime import datetime, UTC
 
 
 # Application Schemas
 class ApplicationCreateRequest(BaseModel):
     """Request schema for creating a new application."""
-    company_id: UUID
-    loan_amount_requested: float
-    loan_purpose: str
+    company_id: Optional[UUID] = None
+    company_name: Optional[str] = None
+    loan_amount_requested: float = 0.0
+    loan_purpose: str = "Working Capital"
 
 
 class ApplicationResponse(BaseModel):
@@ -27,8 +29,7 @@ class ApplicationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ApplicationStatusResponse(BaseModel):
@@ -56,8 +57,7 @@ class DocumentResponse(BaseModel):
     confidence_score: Optional[float] = None
     extracted_data: Optional[Dict[str, Any]] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Research Schemas
@@ -92,8 +92,7 @@ class CreditAssessmentResponse(BaseModel):
     recommended_rate: float
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 # Loan Recommendation Schemas
@@ -132,4 +131,4 @@ class ErrorResponse(BaseModel):
     """Response schema for errors."""
     detail: str
     error_code: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(UTC))

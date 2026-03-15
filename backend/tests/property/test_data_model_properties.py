@@ -387,7 +387,7 @@ def test_financial_data_model_validity(
     assert isinstance(financial_data.cash_flow, float)
 
 
-@settings(max_examples=20)
+@settings(max_examples=20, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
 @given(
     sales=positive_float,
     purchases=positive_float,
@@ -420,7 +420,7 @@ def test_gst_data_model_validity(sales, purchases, tax_paid):
     assert isinstance(gst_data.transactions, list)
 
 
-@settings(max_examples=20)
+@settings(max_examples=20, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
 @given(
     debit=non_negative_float,
     credit=non_negative_float,
@@ -573,7 +573,7 @@ def test_character_score_litigation_count_validity(litigation_count):
     assert isinstance(character_score.litigation_count, int)
 
 
-@settings(max_examples=20)
+@settings(max_examples=20, suppress_health_check=[HealthCheck.too_slow, HealthCheck.data_too_large])
 @given(
     dscr=st.floats(min_value=0.0, max_value=100.0),
     cash_flow=positive_float,

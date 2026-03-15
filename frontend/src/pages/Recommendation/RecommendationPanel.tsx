@@ -1,16 +1,17 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '../../api/client';
+import { LoanRecommendation } from '../../types';
 
 interface RecommendationPanelProps {
   applicationId: string;
 }
 
 export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({ applicationId }) => {
-  const { data: recommendation, isLoading } = useQuery({
+  const { data: recommendation, isLoading } = useQuery<LoanRecommendation>({
     queryKey: ['recommendation', applicationId],
     queryFn: async () => {
-      const response = await apiClient.get(`/applications/${applicationId}/recommendation`);
+      const response = await apiClient.get<LoanRecommendation>(`/applications/${applicationId}/recommendation`);
       return response.data;
     },
   });
@@ -53,7 +54,7 @@ export const RecommendationPanel: React.FC<RecommendationPanelProps> = ({ applic
       <div className="bg-white p-6 rounded shadow">
         <h3 className="font-bold text-lg mb-4">Explanation</h3>
         <div className="space-y-2">
-          {recommendation.explanations && Object.entries(recommendation.explanations).map(([key, value]: [string, any]) => (
+          {recommendation.explanations && Object.entries(recommendation.explanations).map(([key, value]) => (
             <div key={key} className="border-l-4 border-blue-500 pl-4">
               <p className="font-semibold capitalize">{key.replace(/_/g, ' ')}</p>
               <p className="text-gray-600">{typeof value === 'string' ? value : JSON.stringify(value)}</p>

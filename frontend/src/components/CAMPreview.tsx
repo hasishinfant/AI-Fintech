@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { useMutation } from '@tanstack:react-query';
+import { useMutation } from '@tanstack/react-query';
 import { apiClient } from '../services/api';
+import { CAMDocument } from '../types';
 
 interface CAMPreviewProps {
-  cam: any;
+  cam: CAMDocument;
   applicationId: string;
 }
 
