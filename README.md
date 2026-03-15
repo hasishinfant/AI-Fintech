@@ -1,5 +1,8 @@
 # Intelli-Credit AI: Corporate Credit Decisioning Engine
 
+![CI Pipeline](https://github.com/hasishinfant/AI-Fintech/actions/workflows/ci.yml/badge.svg)
+![Docker Build & Push](https://github.com/hasishinfant/AI-Fintech/actions/workflows/docker.yml/badge.svg)
+
 Intelli-Credit AI is a production-ready, automated credit appraisal system designed for Indian Banks and NBFCs. It streamlines the credit decisioning process by transforming raw financial documents and web intelligence into comprehensive, explainable Credit Appraisal Memos (CAMs).
 
 ## 🚀 Key Features
