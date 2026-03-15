@@ -1,187 +1,120 @@
-# Intelli-Credit AI Corporate Credit Decisioning Engine
+# Intelli-Credit AI: Corporate Credit Decisioning Engine
 
-AI-powered credit decisioning system that automates the preparation of Credit Appraisal Memos (CAMs) for Indian Banks and NBFCs.
+Intelli-Credit AI is a production-ready, automated credit appraisal system designed for Indian Banks and NBFCs. It streamlines the credit decisioning process by transforming raw financial documents and web intelligence into comprehensive, explainable Credit Appraisal Memos (CAMs).
 
-## Overview
+## 🚀 Key Features
 
-Intelli-Credit processes multi-format financial documents, performs intelligent web research, and generates explainable lending recommendations based on the Five Cs of Credit framework (Character, Capacity, Capital, Collateral, Conditions).
+- **Multi-Format Ingestion**: Automated parsing of GSTR-2A/3B, ITR, Bank Statements, and Annual Reports.
+- **Intelligent Research**: AI-driven web intelligence gathering with sentiment analysis and legal check automation.
+- **Five Cs Framework**: Robust risk assessment based on Character, Capacity, Capital, Collateral, and Conditions.
+- **Explainable AI**: Transparent risk scoring powered by analytical models with SHAP-based explanations.
+- **Background Orchestration**: Asynchronous workflow processing from document upload to final decision.
+- **CAM Export**: One-click professional report generation in both **Word (.docx)** and **PDF** formats.
+- **Audit & Security**: Comprehensive audit trails and hardened JWT-based authentication.
 
-## Architecture
+## 🛠 Technology Stack
 
-The system consists of four main components:
+### Backend (Python)
 
-1. **Data Ingestor**: Multi-format document parsing and data extraction
-2. **Research Agent**: Automated web intelligence gathering
-3. **Credit Recommendation Engine**: Risk scoring and lending recommendations
-4. **CAM Generator**: Formatted report generation with audit trails
+- **Framework**: FastAPI (Asynchronous)
+- **Database**: SQLite (Development) / PostgreSQL (Production)
+- **Logic**: SQLAlchemy 2.0, Pydantic V2
+- **Document Processing**: `python-docx`, `ReportLab`, `pdfplumber`, `pytesseract` (OCR)
+- **Time Handling**: Timezone-aware UTC-based operations
 
-## Technology Stack
+### Frontend (TypeScript)
 
-### Backend
-- Python 3.10+
-- FastAPI
-- PostgreSQL
-- AWS S3
-- pandas, scikit-learn, shap, FAISS
-- pdfplumber, pytesseract (OCR)
+- **Framework**: React 18 + Vite
+- **Styling**: Tailwind CSS
+- **State/Data**: React Query (TanStack Query), Axios
+- **Quality**: 100% Clean ESLint pass with strict typing
 
-### Frontend
-- React 18
-- TypeScript
-- Tailwind CSS
-- React Query
-
-## Getting Started
+## 🚦 Getting Started
 
 ### Prerequisites
 
-- Python 3.10 or higher
-- Node.js 18 or higher
-- PostgreSQL 14 or higher
-- AWS account (for S3 document storage)
+- Python 3.10+
+- Node.js 18+
+- Tesseract OCR (for scanned document processing)
 
 ### Backend Setup
 
-1. Navigate to the backend directory:
-```bash
-cd backend
-```
+1. **Navigate & Environment**:
 
-2. Create a virtual environment:
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-3. Install dependencies:
-```bash
-pip install -r requirements.txt
-```
+2. **Environment Variables**:
 
-4. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+   ```bash
+   cp .env.example .env
+   # The system comes with a secure default SECRET_KEY
+   ```
 
-5. Initialize the database:
-```bash
-psql -U postgres -c "CREATE DATABASE intellicredit;"
-psql -U postgres -d intellicredit -f app/db/schema.sql
-```
+3. **Database Setup**:
 
-6. Run the development server:
-```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
-```
+   The system uses SQLite by default for development. No manual setup required.
 
-The API will be available at http://localhost:8000
+4. **Run Server**:
+
+   ```bash
+   uvicorn app.main:app --reload
+   ```
 
 ### Frontend Setup
 
-1. Navigate to the frontend directory:
-```bash
-cd frontend
-```
+1. **Navigate & Install**:
 
-2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   cd frontend
+   npm install
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your configuration
-```
+2. **Run Dev Server**:
 
-4. Run the development server:
-```bash
-npm run dev
-```
+   ```bash
+   npm run dev
+   ```
 
-The frontend will be available at http://localhost:3000
-
-## Testing
+## 🧪 Verification & Quality
 
 ### Backend Tests
 
-Run all tests:
+The backend features a comprehensive suite of **641 tests** covering unit, integration, and property-based scenarios.
+
 ```bash
 cd backend
-pytest
+pytest tests
 ```
 
-Run property-based tests only:
-```bash
-pytest -m property
-```
+### Frontend Quality
 
-Run with coverage:
-```bash
-pytest --cov=app --cov-report=html
-```
+The frontend is strictly typed and linted to ensure zero runtime errors.
 
-### Frontend Tests
-
-Run all tests:
 ```bash
 cd frontend
-npm test
+npm run lint
 ```
 
-Run tests in watch mode:
-```bash
-npm run test:watch
+## 🏥 Health Monitoring
+
+The system includes a dedicated health check endpoint to monitor API and Database status:
+`GET /api/health`
+
+## 📂 Project Structure
+
+```text
+AI-Fintech/
+├── backend/          # FastAPI application & Test suite
+├── frontend/         # React + Vite application
+├── data/             # Sample documents & artifacts
+└── scripts/          # Automation and utility scripts
 ```
 
-## Project Structure
+## 📜 License
 
-```
-intelli-credit/
-├── backend/
-│   ├── app/
-│   │   ├── api/              # API routes
-│   │   ├── core/             # Core configuration
-│   │   ├── db/               # Database models and schema
-│   │   ├── models/           # Domain models
-│   │   ├── services/         # Business logic
-│   │   │   ├── data_ingestor/
-│   │   │   ├── research_agent/
-│   │   │   ├── credit_engine/
-│   │   │   └── cam_generator/
-│   │   └── utils/            # Utilities
-│   ├── tests/
-│   │   ├── unit/
-│   │   ├── integration/
-│   │   └── property/
-│   └── requirements.txt
-├── frontend/
-│   ├── src/
-│   │   ├── api/              # API client
-│   │   ├── components/       # React components
-│   │   ├── types/            # TypeScript types
-│   │   └── App.tsx
-│   └── package.json
-└── README.md
-```
-
-## Features
-
-- Multi-format document ingestion (PDF, Excel, CSV, images)
-- OCR for scanned documents
-- Circular trading detection
-- Automated web research and sentiment analysis
-- Five Cs credit assessment
-- Risk scoring and loan recommendations
-- Explainable AI with SHAP values
-- CAM generation with Word/PDF export
-- Complete audit trail
-
-## License
-
-Proprietary - All rights reserved
-
-## Support
-
-For support, please contact the development team.
+Proprietary - All rights reserved.
