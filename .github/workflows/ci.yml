@@ -20,7 +20,7 @@ jobs:
       - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y tesseract-ocr poppler-utils
+          sudo apt-get install -y tesseract-ocr poppler-utils libpq-dev gcc
 
       - name: Install Python Dependencies
         run: |
@@ -34,7 +34,7 @@ jobs:
           DATABASE_URL: sqlite:///./test.db
         run: |
           cd backend
-          python -m pytest tests
+          pytest
 
   frontend-lint:
     runs-on: ubuntu-latest
